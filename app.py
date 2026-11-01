@@ -6,6 +6,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import requests
 import streamlit as st
+from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
 from generate_demo_data import DISEASES, AGE_GROUPS, MONTHS, SHORT_MONTHS, REGIONS, build
 
 st.set_page_config(page_title="NSDS Dashboard V2", page_icon="🩺", layout="wide")
@@ -116,7 +117,26 @@ def demo_summary(frame, region, disease):
     return age,sex,int(rows.cases.sum())
 
 def pct(n,total): return f"{n/total*100:.1f}%" if total else "0.0%"
+def dashboard_link(base_url, region, month, disease, status):
+    parts = urlsplit(str(base_url).strip())
+    query = dict(parse_qsl(parts.query, keep_blank_values=True))
 
+    query.update({
+        "view": "overview",
+        "region": region,
+        "year_be": "2569",
+        "month": str(month),
+        "highlight_disease": disease,
+        "highlight_status": status,
+    })
+
+    return urlunsplit((
+        parts.scheme,
+        parts.netloc,
+        parts.path or "/",
+        urlencode(query),
+        parts.fragment
+    ))
 def message(region, month, results, recipient, url):
     flagged=[x for x in results if x["status"] in ("WATCH","ALERT")]
     a=sum(x["status"]=="ALERT" for x in flagged); w=sum(x["status"]=="WATCH" for x in flagged)
@@ -132,9 +152,53 @@ def message(region, month, results, recipient, url):
                   f"เพศชาย {int(sex['ชาย']):,} ({pct(int(sex['ชาย']),total)}) · หญิง {int(sex['หญิง']):,} ({pct(int(sex['หญิง']),total)})",
                   "จำแนกตามอายุ:"]
         for g in AGE_GROUPS:
-            n=int(age[g]); lines.append(f"• {g}: {n:,} ราย ({pct(n,total)})")
-    lines += ["━━━━━━━━━━━━━━━━━━","ข้อมูลสังเคราะห์เพื่อสาธิต ไม่ใช่ข้อมูลผู้ป่วยจริง",f"ดู Dashboard และกราฟเพิ่มเติม: {url}"]
+            n=int(age[g])
+            lines.append(f"• {g}: {n:,} ราย ({pct(n,total)})")
+
+        disease_url = dashboard_link(
+            url, region, month, x["disease"], x["status"]
+        )
+        lines.append(
+            f"📊 Dashboard เฉพาะโรค {x['disease']}: {disease_url}"
+        )
+
+    lines += [
+        "────────────",
+        "ข้อมูลสังเคราะห์เพื่อการศึกษา ไม่ใช่ข้อมูลผู้ป่วยจริง"
+    ]
+    return "\n".join(lines)[:4900]        for g in AGE_GROUPS:
+            n=int(age[g])
+            lines.append(f"• {g}: {n:,} ราย ({pct(n,total)})")
+
+        disease_url = dashboard_link(
+            url, region, month, x["disease"], x["status"]
+        )
+        lines.append(
+            f"📊 Dashboard เฉพาะโรค {x['disease']}: {disease_url}"
+        )
+
+    lines += [
+        "────────────",
+        "ข้อมูลสังเคราะห์เพื่อการศึกษา ไม่ใช่ข้อมูลผู้ป่วยจริง"
+    ]
+    return "\n".join(lines)[:4900]        for g in AGE_GROUPS:
+            n=int(age[g])
+            lines.append(f"• {g}: {n:,} ราย ({pct(n,total)})")
+
+        disease_url = dashboard_link(
+            url, region, month, x["disease"], x["status"]
+        )
+        lines.append(
+            f"📊 Dashboard เฉพาะโรค {x['disease']}: {disease_url}"
+        )
+
+    lines += [
+        "────────────",
+        "ข้อมูลสังเคราะห์เพื่อการศึกษา ไม่ใช่ข้อมูลผู้ป่วยจริง"
+    ]
     return "\n".join(lines)[:4900]
+
+
 
 def send_line(token,target,text):
     r=requests.post("https://api.line.me/v2/bot/message/push",
@@ -172,8 +236,10 @@ with st.sidebar:
     st.subheader("ตัวเลือกข้อมูล")
     region=st.selectbox("เขตสุขภาพ",REGIONS,index=3)
     year=st.selectbox("ปี พ.ศ.",[2564,2565,2566,2567,2568,2569],index=5)
-    disease=st.selectbox("โรค",DISEASES,index=0)
-    st.caption("ข้อมูลทั้งหมดเป็นข้อมูลสังเคราะห์เพื่อการศึกษา")
+    query_disease = st.query_params.get("highlight_disease", "")
+    disease_index = DISEASES.index(query_disease) if query_disease in DISEASES else 0
+    
+    disease = st.selectbox("โรค", DISEASES, index=disease_index)
 
 # ---------------- Page 1 ----------------
 if page=="ภาพรวม Dashboard":
