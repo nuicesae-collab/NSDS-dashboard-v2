@@ -1,5 +1,5 @@
 ﻿hospital_id,hospital_name,health_region,line_user_id,is_active,consent_status
-R01-A,โรงพยาบาลตัวอย่าง A (เขตสุขภาพที่ 1),เขตสุขภาพที่ 1,,True,demo
+R01-A,โรงพยาบาลตัวอย่าง A (เขตสุขภาพที่ 1),เขตสุขภาพที่ 1,Ud2fd0ec01dc5fb3e1f1ae9d13df1236e,True,approved
 R01-B,โรงพยาบาลตัวอย่าง B (เขตสุขภาพที่ 1),เขตสุขภาพที่ 1,,True,demo
 R01-C,โรงพยาบาลตัวอย่าง C (เขตสุขภาพที่ 1),เขตสุขภาพที่ 1,,True,demo
 R02-A,โรงพยาบาลตัวอย่าง A (เขตสุขภาพที่ 2),เขตสุขภาพที่ 2,,True,demo
