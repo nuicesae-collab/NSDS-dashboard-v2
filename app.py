@@ -61,6 +61,28 @@ st.markdown("""
 .block-container{padding-top:1.1rem;padding-bottom:2rem;max-width:1500px}
 [data-testid="stMetric"]{background:#f5f7fb;border:1px solid #e7edf5;padding:13px 15px;border-radius:12px}
 [data-testid="stAlert"]{border-radius:10px}
+/* NSDS overview cards only: scoped classes, other pages remain unchanged. */
+.nsds-kpi-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin:0 0 10px}
+.nsds-kpi-card{box-sizing:border-box;min-width:0;min-height:148px;padding:16px 18px;border:1px solid;border-radius:15px;display:flex;flex-direction:column;justify-content:space-between}
+.nsds-kpi-head{display:flex;align-items:center;gap:10px;color:#20283a;font-size:15px;font-weight:650;line-height:1.35}
+.nsds-kpi-icon{width:38px;height:38px;flex:0 0 38px;border-radius:50%;display:grid;place-items:center}
+.nsds-kpi-icon svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.nsds-kpi-value{margin-top:10px;color:#172033;font-size:32px;font-weight:750;line-height:1.15;letter-spacing:-.5px;overflow-wrap:anywhere}
+.nsds-kpi-note{min-height:18px;margin-top:7px;color:#667085;font-size:12px;line-height:1.35}
+.nsds-kpi-blue{background:linear-gradient(135deg,#eff6ff 0%,#dceafe 100%);border-color:#d5e7ff}
+.nsds-kpi-blue .nsds-kpi-icon{background:#d5e8ff;color:#1764c0}
+.nsds-kpi-pink{background:linear-gradient(135deg,#fff1f3 0%,#ffe0e6 100%);border-color:#ffd8df}
+.nsds-kpi-pink .nsds-kpi-icon{background:#ffd9df;color:#b42318}
+.nsds-kpi-yellow{background:linear-gradient(135deg,#fffbea 0%,#fff3c4 100%);border-color:#f9edc1}
+.nsds-kpi-yellow .nsds-kpi-icon{background:#ffedb0;color:#956000}
+.nsds-kpi-purple{background:linear-gradient(135deg,#f7f0ff 0%,#eadcff 100%);border-color:#eadbff}
+.nsds-kpi-purple .nsds-kpi-icon{background:#e7d5ff;color:#7138b5}
+.nsds-kpi-change{display:inline-flex;align-items:center;gap:5px;margin-top:7px;padding:4px 9px;border-radius:999px;font-size:12px;font-weight:650;width:max-content}
+.nsds-kpi-change-positive{background:#dcfce7;color:#187443}
+.nsds-kpi-change-negative{background:#fee2e2;color:#b42318}
+.nsds-kpi-change-neutral{background:#e9edf5;color:#475467}
+@media(max-width:1050px){.nsds-kpi-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.nsds-kpi-grid{grid-template-columns:1fr}.nsds-kpi-card{min-height:130px}}
 </style>""", unsafe_allow_html=True)
 
 def secret(key, default=""):
@@ -220,14 +242,76 @@ if page=="ภาพรวม Dashboard":
     selected,source=year_frame(year)
     selected=selected[selected.health_region==region].copy()
     month_compare=st.selectbox("เดือนสำหรับกราฟเปรียบเทียบ 6 โรค",range(1,13),index=9,format_func=lambda m:MONTHS[m-1])
-    if year==2569:
-        status=[eval_disease(region,d,month_compare) for d in DISEASES]
-        alert_n=sum(x["status"]=="ALERT" for x in status); watch_n=sum(x["status"]=="WATCH" for x in status)
-        alert_text,watch_text=str(alert_n),str(watch_n)
-    else: alert_text,watch_text="—","—"
-    c1,c2,c3,c4=st.columns(4)
-    c1.metric(f"ผู้ป่วยรวม · {year}",f"{int(selected.cases.sum()):,} ราย")
-    c2.metric("ALERT",alert_text); c3.metric("WATCH",watch_text); c4.metric("โรคที่ติดตาม","6 โรค")
+    # Summary cards: calculations are scoped to the selected region and disease.
+    # For the current year, use the latest completed month; historical years use December.
+    current_year_be = datetime.now().year + 543
+    latest_month = max(1, datetime.now().month - 1) if year == current_year_be else 12
+    disease_rows = selected[selected.disease == disease]
+    accumulated_cases = int(disease_rows.cases.sum())
+    latest_cases = int(disease_rows.loc[disease_rows.month == latest_month, "cases"].sum())
+    previous_month = 12 if latest_month == 1 else latest_month - 1
+    previous_cases = int(disease_rows.loc[disease_rows.month == previous_month, "cases"].sum())
+
+    if previous_cases > 0:
+        change_pct = (latest_cases - previous_cases) / previous_cases * 100
+        change_text = f"{change_pct:+.1f}%"
+    elif latest_cases == 0:
+        change_text = "0.0%"
+    else:
+        change_text = "—"
+
+    change_count = latest_cases - previous_cases
+    if change_count > 0:
+        change_badge = f"↑ +{change_count:,} ราย"
+        change_class = "nsds-kpi-change-positive"
+    elif change_count < 0:
+        change_badge = f"↓ {change_count:,} ราย"
+        change_class = "nsds-kpi-change-negative"
+    else:
+        change_badge = "→ 0 ราย"
+        change_class = "nsds-kpi-change-neutral"
+
+    if year == 2569:
+        card_status = [eval_disease(region, d, latest_month) for d in DISEASES]
+        alert_n = sum(x["status"] == "ALERT" for x in card_status)
+        watch_n = sum(x["status"] == "WATCH" for x in card_status)
+        flagged_n = alert_n + watch_n
+        status_value = f"{flagged_n}"
+        status_note = f"ALERT {alert_n} · WATCH {watch_n}"
+    else:
+        status_value = "—"
+        status_note = "แสดงสถานะเมื่อเลือกปี 2569"
+
+    users_icon = "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2'/><circle cx='9' cy='7' r='4'/><path d='M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75'/></svg>"
+    calendar_icon = "<svg viewBox='0 0 24 24' aria-hidden='true'><rect x='3' y='5' width='18' height='16' rx='2'/><path d='M16 3v4M8 3v4M3 11h18'/></svg>"
+    trend_icon = "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='m3 17 6-6 4 4 8-9'/><path d='M15 6h6v6'/></svg>"
+    bell_icon = "<svg viewBox='0 0 24 24' aria-hidden='true'><path d='M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4'/></svg>"
+
+    cards_html = f"""
+    <div class="nsds-kpi-grid">
+      <section class="nsds-kpi-card nsds-kpi-blue">
+        <div class="nsds-kpi-head"><span class="nsds-kpi-icon">{users_icon}</span><span>ผู้ป่วยสะสมโรคที่เลือก</span></div>
+        <div class="nsds-kpi-value">{accumulated_cases:,} ราย</div>
+        <div class="nsds-kpi-note">{disease} · {region} · พ.ศ. {year}</div>
+      </section>
+      <section class="nsds-kpi-card nsds-kpi-pink">
+        <div class="nsds-kpi-head"><span class="nsds-kpi-icon">{calendar_icon}</span><span>ผู้ป่วยเดือนล่าสุด</span></div>
+        <div class="nsds-kpi-value">{latest_cases:,} ราย</div>
+        <div class="nsds-kpi-note">{MONTHS[latest_month - 1]} พ.ศ. {year}</div>
+      </section>
+      <section class="nsds-kpi-card nsds-kpi-yellow">
+        <div class="nsds-kpi-head"><span class="nsds-kpi-icon">{trend_icon}</span><span>เปลี่ยนแปลงจากเดือนก่อน</span></div>
+        <div class="nsds-kpi-value">{change_text}</div>
+        <div class="nsds-kpi-change {change_class}">{change_badge}</div>
+      </section>
+      <section class="nsds-kpi-card nsds-kpi-purple">
+        <div class="nsds-kpi-head"><span class="nsds-kpi-icon">{bell_icon}</span><span>STATUS WATCH / ALERT</span></div>
+        <div class="nsds-kpi-value">{status_value}</div>
+        <div class="nsds-kpi-note">{status_note}</div>
+      </section>
+    </div>
+    """
+    st.markdown(cards_html, unsafe_allow_html=True)
     st.caption(f"{source} · สถานะ WATCH/ALERT ประเมินจาก Simulation 2569")
 
     st.subheader(f"แนวโน้มผู้ป่วยรายเดือน | {disease}")
