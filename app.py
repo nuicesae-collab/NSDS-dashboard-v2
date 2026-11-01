@@ -166,37 +166,10 @@ def message(region, month, results, recipient, url):
         "────────────",
         "ข้อมูลสังเคราะห์เพื่อการศึกษา ไม่ใช่ข้อมูลผู้ป่วยจริง"
     ]
-    return "\n".join(lines)[:4900]        for g in AGE_GROUPS:
-            n=int(age[g])
-            lines.append(f"• {g}: {n:,} ราย ({pct(n,total)})")
+    return "\n".join(lines)[:4900]        
+            
 
-        disease_url = dashboard_link(
-            url, region, month, x["disease"], x["status"]
-        )
-        lines.append(
-            f"📊 Dashboard เฉพาะโรค {x['disease']}: {disease_url}"
-        )
 
-    lines += [
-        "────────────",
-        "ข้อมูลสังเคราะห์เพื่อการศึกษา ไม่ใช่ข้อมูลผู้ป่วยจริง"
-    ]
-    return "\n".join(lines)[:4900]        for g in AGE_GROUPS:
-            n=int(age[g])
-            lines.append(f"• {g}: {n:,} ราย ({pct(n,total)})")
-
-        disease_url = dashboard_link(
-            url, region, month, x["disease"], x["status"]
-        )
-        lines.append(
-            f"📊 Dashboard เฉพาะโรค {x['disease']}: {disease_url}"
-        )
-
-    lines += [
-        "────────────",
-        "ข้อมูลสังเคราะห์เพื่อการศึกษา ไม่ใช่ข้อมูลผู้ป่วยจริง"
-    ]
-    return "\n".join(lines)[:4900]
 
 
 
