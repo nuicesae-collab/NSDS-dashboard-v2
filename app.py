@@ -1,6 +1,6 @@
 from pathlib import Path
 from datetime import datetime
-import os, sqlite3
+import os, sqlite3, hmac
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
@@ -283,9 +283,38 @@ elif page=="วิเคราะห์อายุและเพศ":
     cross["รวม"]=cross.sum(axis=1)
     st.dataframe(cross.reset_index().rename(columns={"age_group":"ช่วงอายุ"}),hide_index=True,use_container_width=True)
 
-# ---------------- Page 3 ----------------
+# ---------------- Page 3: Admin-only notifications ----------------
 else:
     st.header("แจ้งเตือนโรงพยาบาลและเจ้าหน้าที่")
+    st.caption("พื้นที่ผู้ดูแลระบบ · ต้องยืนยันรหัสผ่านก่อนส่ง LINE และดูประวัติการส่ง")
+
+    admin_password = str(secret("NSDS_ADMIN_PASSWORD", "")).strip()
+    if not admin_password:
+        st.warning("ยังไม่ได้ตั้งรหัสผ่านผู้ดูแลระบบ จึงยังเข้าใช้งานส่วนแจ้งเตือนไม่ได้")
+        st.markdown("เพิ่ม `NSDS_ADMIN_PASSWORD` ใน Streamlit App → Settings → Secrets ก่อนเปิดใช้")
+        st.stop()
+
+    if not st.session_state.get("nsds_admin_authenticated", False):
+        with st.form("nsds_admin_login"):
+            entered_password = st.text_input("รหัสผ่านผู้ดูแลระบบ", type="password")
+            login_clicked = st.form_submit_button("เข้าสู่ระบบผู้ดูแล", type="primary")
+        if login_clicked:
+            if hmac.compare_digest(entered_password, admin_password):
+                st.session_state["nsds_admin_authenticated"] = True
+                st.rerun()
+            else:
+                st.error("รหัสผ่านไม่ถูกต้อง กรุณาลองอีกครั้ง")
+        st.info("Dashboard และหน้าวิเคราะห์ยังเปิดให้ทุกคนเข้าดูได้ โดยไม่ต้องเข้าสู่ระบบ")
+        st.stop()
+
+    top_left, top_right = st.columns([5, 1])
+    with top_left:
+        st.success("เข้าสู่ระบบผู้ดูแลแล้ว")
+    with top_right:
+        if st.button("ออกจากระบบ", use_container_width=True):
+            st.session_state["nsds_admin_authenticated"] = False
+            st.rerun()
+
     st.caption("ประเมินครบทั้ง 6 โรค และแจ้งเฉพาะโรคที่เข้าเกณฑ์ WATCH หรือ ALERT")
     month=st.selectbox("เดือนที่ต้องการประเมิน",range(1,13),index=9,format_func=lambda m:MONTHS[m-1])
     results=[eval_disease(region,d,month) for d in DISEASES]
@@ -343,6 +372,7 @@ else:
 เพิ่มใน Streamlit App → Settings → Secrets
 
 ```toml
+NSDS_ADMIN_PASSWORD = "ตั้งรหัสผ่านผู้ดูแลที่คาดเดายาก"
 LINE_CHANNEL_ACCESS_TOKEN = "YOUR_CHANNEL_ACCESS_TOKEN"
 DASHBOARD_URL = "https://your-dashboard.streamlit.app/"
 
