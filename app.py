@@ -8,6 +8,20 @@ import requests
 import streamlit as st
 from supabase import create_client
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+MONTHS = [
+    "มกราคม",
+    "กุมภาพันธ์",
+    "มีนาคม",
+    "เมษายน",
+    "พฤษภาคม",
+    "มิถุนายน",
+    "กรกฎาคม",
+    "สิงหาคม",
+    "กันยายน",
+    "ตุลาคม",
+    "พฤศจิกายน",
+    "ธันวาคม"
+]
 st.set_page_config(
     page_title="NSDS Dashboard V2",
     page_icon="🩺",
