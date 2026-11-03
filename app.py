@@ -71,6 +71,18 @@ def read(path):
 history, forecast, simulation, thresholds, hospitals = [read(FILES[k]) for k in
     ("history", "forecast", "simulation", "thresholds", "hospitals")]
 
+# รายชื่อโรคจากข้อมูลเดิม
+DISEASES = sorted({
+    str(value).strip()
+    for value in pd.concat([
+        history["disease"],
+        forecast["disease"],
+        simulation["disease"]
+    ]).dropna().tolist()
+    if str(value).strip()
+})
+
+
 required = {"year_be","month","disease","health_region","age_group","sex","cases","data_status"}
 for name, frame in [("history",history),("forecast",forecast),("simulation",simulation)]:
     missing_cols = required - set(frame.columns)
