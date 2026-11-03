@@ -14,6 +14,7 @@ st.set_page_config(
     layout="wide"
 )
 
+
 # ---------- Supabase Connection ----------
 try:
     supabase = create_client(
@@ -21,13 +22,27 @@ try:
         st.secrets["SUPABASE_ANON_KEY"]
     )
 
-    result = supabase.table("regions").select("*").execute()
+    regions_result = (
+        supabase.table("regions")
+        .select("id, region_name")
+        .order("id")
+        .execute()
+    )
+
+    REGIONS = [
+        row["region_name"]
+        for row in regions_result.data
+    ]
+
+    if len(REGIONS) != 13:
+        st.warning(f"พบเขตสุขภาพ {len(REGIONS)} เขต")
 
     st.success("เชื่อมต่อ Supabase สำเร็จ!")
-    st.write("จำนวนเขตสุขภาพ:", len(result.data))
+    st.write("จำนวนเขตสุขภาพ:", len(REGIONS))
 
 except Exception as e:
     st.error(f"เชื่อมต่อ Supabase ไม่สำเร็จ: {e}")
+    st.stop()
 
 ROOT = Path(__file__).parent
 DATA = ROOT / "data"
