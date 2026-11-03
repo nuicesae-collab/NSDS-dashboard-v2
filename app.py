@@ -66,8 +66,7 @@ for name, frame in [("history",history),("forecast",forecast),("simulation",simu
         frame[col] = pd.to_numeric(frame[col], errors="coerce").fillna(0).astype(int)
     frame["cases"] = frame["cases"].clip(lower=0)
     frame["month"] = frame["month"].clip(1,12)
-    frame["age_group"] = pd.Categorical(frame["age_group"], categories=AGE_GROUPS, ordered=True)
-
+    frame["age_group"] = frame["age_group"].astype("category")
 for col in ("watch_ratio","alert_ratio","zero_watch_cases","zero_alert_cases"):
     if col in thresholds:
         thresholds[col] = pd.to_numeric(thresholds[col], errors="coerce")
