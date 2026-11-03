@@ -5,3 +5,4 @@ plotly>=5.20
 requests>=2.31
 fastapi>=0.110
 uvicorn[standard]>=0.27
+supabase
