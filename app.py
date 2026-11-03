@@ -6,10 +6,29 @@ import plotly.express as px
 import plotly.graph_objects as go
 import requests
 import streamlit as st
+from supabase import create_client
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
-from generate_demo_data import DISEASES, AGE_GROUPS, MONTHS, SHORT_MONTHS, REGIONS, build
+st.set_page_config(
+    page_title="NSDS Dashboard V2",
+    page_icon="🩺",
+    layout="wide"
+)
 
-st.set_page_config(page_title="NSDS Dashboard V2", page_icon="🩺", layout="wide")
+# ---------- Supabase Connection ----------
+try:
+    supabase = create_client(
+        st.secrets["SUPABASE_URL"],
+        st.secrets["SUPABASE_ANON_KEY"]
+    )
+
+    result = supabase.table("regions").select("*").execute()
+
+    st.success("เชื่อมต่อ Supabase สำเร็จ!")
+    st.write("จำนวนเขตสุขภาพ:", len(result.data))
+
+except Exception as e:
+    st.error(f"เชื่อมต่อ Supabase ไม่สำเร็จ: {e}")
+
 ROOT = Path(__file__).parent
 DATA = ROOT / "data"
 FILES = {
