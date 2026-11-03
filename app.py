@@ -8,19 +8,16 @@ import requests
 import streamlit as st
 from supabase import create_client
 from urllib.parse import urlsplit, urlunsplit, parse_qsl, urlencode
+
+# ชื่อเดือนสำหรับแสดงผลใน Dashboard
 MONTHS = [
-    "มกราคม",
-    "กุมภาพันธ์",
-    "มีนาคม",
-    "เมษายน",
-    "พฤษภาคม",
-    "มิถุนายน",
-    "กรกฎาคม",
-    "สิงหาคม",
-    "กันยายน",
-    "ตุลาคม",
-    "พฤศจิกายน",
-    "ธันวาคม"
+    "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน",
+    "พฤษภาคม", "มิถุนายน", "กรกฎาคม", "สิงหาคม",
+    "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+]
+SHORT_MONTHS = [
+    "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+    "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
 ]
 st.set_page_config(
     page_title="NSDS Dashboard V2",
@@ -70,14 +67,12 @@ FILES = {
 DB = DATA / "notification_history.sqlite3"
 DASH_URL = "https://nsds-dashboard-v2-dmyt5gi52if5njkgwsohja.streamlit.app/"
 
-# Generate only missing CSVs; never overwrite existing synthetic data.
-missing = [k for k, p in FILES.items() if not p.exists()]
+# ตรวจสอบไฟล์ข้อมูลที่จำเป็น โดยไม่สร้างหรือเขียนทับข้อมูลอัตโนมัติ
+missing = [str(path.relative_to(ROOT)) for path in FILES.values() if not path.exists()]
 if missing:
-    tmp = ROOT / ".nsds_demo_build"
-    build(tmp)
-    DATA.mkdir(parents=True, exist_ok=True)
-    for k in missing:
-        (tmp / FILES[k].name).replace(FILES[k])
+    st.error("ไม่พบไฟล์ข้อมูลที่จำเป็นในโฟลเดอร์ data: " + ", ".join(missing))
+    st.info("กรุณาตรวจสอบว่าได้อัปโหลดไฟล์ CSV ทั้ง 5 ไฟล์ไว้ในโฟลเดอร์ data ของ GitHub แล้ว")
+    st.stop()
 
 def read(path):
     return pd.read_csv(path, encoding="utf-8-sig")
@@ -95,6 +90,22 @@ DISEASES = sorted({
     ]).dropna().tolist()
     if str(value).strip()
 })
+
+# ใช้ลำดับกลุ่มอายุที่ปรากฏในไฟล์ข้อมูลเดิม
+AGE_GROUPS = [
+    str(value).strip()
+    for value in pd.concat([
+        history["age_group"], forecast["age_group"], simulation["age_group"]
+    ]).dropna().drop_duplicates().tolist()
+    if str(value).strip()
+]
+
+if not DISEASES:
+    st.error("ไม่พบรายชื่อโรคในไฟล์ข้อมูล history / forecast / simulation")
+    st.stop()
+if not AGE_GROUPS:
+    st.error("ไม่พบข้อมูล age_group ในไฟล์ข้อมูล")
+    st.stop()
 
 
 required = {"year_be","month","disease","health_region","age_group","sex","cases","data_status"}
